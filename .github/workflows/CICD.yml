@@ -57,8 +57,9 @@ jobs:
       uses: docker/build-push-action@v6
       with:
           context: . 
+          file: ./DockerFile
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/testcicd:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/testci_cd:latest
     
     - name: Image digest
       run: echo ${{steps.build-and-publish.outputs.digest}} 
