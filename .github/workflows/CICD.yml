@@ -1,37 +1,37 @@
-name: CI/CD Docker Flask
+name: CI/CD for Dockerized Flask App
 
 on:
   push:
-    branches: [ "DHR" ]
+    branches: [ DHR ]
   pull_request:
-    branches: [ "DHR" ]
-
-permissions:
-  contents: read
+    branches: [ DHR ]
 
 jobs:
-  build-and-test:
-
-    runs-on: ubuntu-latest # containers (we also have windows and mac containers)
-
+  dockerbuild:
+    runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
-    - name: Set up Python 3.10
+    - name: Build The Docker Image
+      run: docker build . --file DockerFile --tag workflow-test:$(date +%s)
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: "3.10"
+        python-version: '3.9'
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install flake8 
-        pip install -r requirements.txt
-    - name: Lint with flake8
-      run: |
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-    - name: Test with pytest
+        pip install flask
+        pip install pytest
+
+    - name: Run tests
       run: |
         pytest
 
@@ -40,26 +40,25 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout the code
+    - name: Checkout code
       uses: actions/checkout@v3
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
 
-    - name: Log in to Docker Hub
-      uses: docker/login-action@v3
+    - name: Login to DockerHub
+      uses: docker/login-action@v2
       with:
-        username: ${{ secrets.DOCKER_USERNAME }} # Set this in your GitHub secrets
-        password: ${{ secrets.DOCKER_PASSWORD }} # Set this in your GitHub secrets
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
 
-    
-    - name: Build and push
-      uses: docker/build-push-action@v6
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v4
       with:
-          # context: . 
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/test_cicd:latest
-    
+        context: .
+        file: ./DockerFile
+        push: true
+        tags: ${{ secrets.DOCKER_USERNAME }}/flasktest-app:latest
+
     - name: Image digest
-      run: echo ${{steps.build-and-publish.outputs.digest}} 
-            
+      run: echo ${{ steps.build-and-publish.outputs.digest }}
